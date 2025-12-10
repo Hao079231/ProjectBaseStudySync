@@ -2,6 +2,7 @@ package com.base.auth.constant;
 
 
 import io.swagger.models.auth.In;
+import java.util.Map;
 
 public class UserBaseConstant {
     public static final String DATE_FORMAT = "dd/MM/yyyy";
@@ -33,6 +34,15 @@ public class UserBaseConstant {
 
     public static final Boolean MFA_ENABLE = true;
     public static final Boolean MFA_DISABLE = false;
+
+    public static final String SYNC_TYPE_INSERT = "INSERT";
+    public static final String SYNC_TYPE_UPDATE = "UPDATE";
+    public static final String SYNC_TYPE_DELETE = "DELETE";
+
+    public static final Map<String, String> ENTITY_SERVICE_MAP = Map.of(
+        "PRODUCT", "productSyncServiceImpl",
+        "CATEGORY", "categorySyncServiceImpl"
+    );
 
     private UserBaseConstant(){
         throw new IllegalStateException("Utility class");
