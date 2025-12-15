@@ -3,6 +3,7 @@ package com.base.auth.controller;
 import com.base.auth.dto.ApiMessageDto;
 import com.base.auth.form.sync.DataSyncRequestForm;
 import com.base.auth.service.SyncService;
+import javax.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.BindingResult;
@@ -19,7 +20,7 @@ public class SyncController {
   SyncService syncService;
 
   @PostMapping(value = "/process")
-  public ApiMessageDto<Boolean> handleSync(@RequestBody DataSyncRequestForm dataSyncRequestForm, BindingResult bindingResult){
+  public ApiMessageDto<Boolean> handleSync(@Valid @RequestBody DataSyncRequestForm dataSyncRequestForm, BindingResult bindingResult){
     ApiMessageDto<Boolean> apiMessageDto = new ApiMessageDto<>();
     Boolean result = syncService.processSync(dataSyncRequestForm);
     if (!result){

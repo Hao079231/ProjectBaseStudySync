@@ -2,11 +2,13 @@ package com.base.auth.service;
 
 import com.base.auth.constant.UserBaseConstant;
 import com.base.auth.form.sync.DataSyncRequestForm;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.base.auth.utils.ConvertUtils;
+import com.base.auth.utils.JsonPayloadParserUtils;
+import com.base.auth.validation.SyncEntity;
+import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -16,80 +18,52 @@ import org.springframework.stereotype.Service;
 public class SyncService {
   @Autowired
   ApplicationContext applicationContext;
+  private Map<String, ISyncableService> entityServiceMap = new HashMap<>();
 
-  @Autowired
-  ObjectMapper objectMapper;
+  @PostConstruct
+  public void init(){
+    Map<String, ISyncableService> services = applicationContext.getBeansOfType(ISyncableService.class);
 
-  public Boolean processSync(DataSyncRequestForm dataSyncRequestForm){
-    try{
-      String serviceName = UserBaseConstant.ENTITY_SERVICE_MAP.get(dataSyncRequestForm.getEntity());
-      if (StringUtils.isEmpty(serviceName)){
-        log.error("===> SYNC UNSUPPORTED - Entity: {}", dataSyncRequestForm.getEntity());
-        return false;
+    for (ISyncableService service : services.values()){
+      SyncEntity anotation = service.getClass().getAnnotation(SyncEntity.class);
+      if (anotation != null){
+        String entityName = anotation.value().toUpperCase();
+        entityServiceMap.put(entityName, service);
       }
-
-      ISyncableService service = (ISyncableService) applicationContext.getBean(serviceName);
-      Map<String, Object> payloadMap = parsePayload(dataSyncRequestForm.getPayload());
-      String type = dataSyncRequestForm.getType().toUpperCase();
-
-      switch (type) {
-        case UserBaseConstant.SYNC_TYPE_INSERT:
-          return handleInsert(service, dataSyncRequestForm.getEntity(), payloadMap);
-
-        case UserBaseConstant.SYNC_TYPE_UPDATE:
-          return handleUpdate(service, dataSyncRequestForm.getEntity(), payloadMap);
-
-        case UserBaseConstant.SYNC_TYPE_DELETE:
-          return handleDelete(service, dataSyncRequestForm.getEntity(), payloadMap);
-
-        default:
-          log.error("===> SYNC-INVALID-TYPE - Type: {}", dataSyncRequestForm.getType());
-          return false;
-      }
-
-    } catch (Exception e) {
-      log.error("===> SYNC-EXCEPTION - Entity: {}, Error: {}", dataSyncRequestForm.getEntity(), e.getMessage());
-      return false;
     }
   }
 
-  private Boolean handleInsert(ISyncableService service, String entityName,
-      Map<String, Object> payload) {
-    log.info("===> SYNC INSERT - Entity: {}", entityName);
-    Object idObj = payload.get("id");
-    Long id = Long.valueOf(idObj.toString());
-    return service.insert(id, payload);
-  }
-
-  private Boolean handleUpdate(ISyncableService service, String entityName,
-      Map<String, Object> payload) {
-    log.info("===> SYNC-UPDATE - Entity: {}", entityName);
-
-    Object idObj = payload.get("id");
-    Long id = Long.valueOf(idObj.toString());
-    return service.update(id, payload);
-  }
-
-  Boolean handleDelete(ISyncableService service, String entityName,
-      Map<String, Object> payload) {
-    log.info("===> SYNC DELETE - Entity: {}", entityName);
-
-    Object idObj = payload.get("id");
-    Long id = Long.valueOf(idObj.toString());
-    return service.delete(id);
-  }
-
-
-  private Map<String, Object> parsePayload(String payload) {
+  public Boolean processSync(DataSyncRequestForm form) {
     try {
-      if (payload == null || payload.isEmpty()) {
-        log.error("===> SYNC PARSE ERROR: Payload is emty");
-      }
-      return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
+      ISyncableService service = entityServiceMap.get(form.getEntity().toUpperCase());
 
+      if (service == null) {
+        log.error("SYNC ENTITY NOT FOUND: {}", form.getEntity());
+        return false;
+      }
+
+      String type = form.getType().toUpperCase();
+      Map<String, String> payload = JsonPayloadParserUtils.parse(form.getPayload());
+
+      Long id = ConvertUtils.convertStringToLong(payload.get("id"));
+
+      switch (type) {
+        case UserBaseConstant.SYNC_TYPE_INSERT:
+          return service.insert(id, payload);
+
+        case UserBaseConstant.SYNC_TYPE_UPDATE:
+          return service.update(id, payload);
+
+        case UserBaseConstant.SYNC_TYPE_DELETE:
+          return service.delete(id);
+
+        default:
+          log.error("INVALID SYNC TYPE: {}", type);
+          return false;
+      }
     } catch (Exception e) {
-      log.error("===> SYNC PARSE ERROR - Failed to parse payload: {}", e.getMessage());
-      return null;
+      log.error("SYNC ERROR", e);
+      return false;
     }
   }
 }

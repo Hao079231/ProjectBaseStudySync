@@ -8,7 +8,7 @@ import lombok.Data;
 
 @ApiModel
 @Data
-public class CreateProductForm {
+public class ProductForm {
   @NotEmpty(message = "name cannot be null")
   @ApiModelProperty(name = "name")
   private String name;
@@ -24,7 +24,4 @@ public class CreateProductForm {
   private Integer stock;
   @ApiModelProperty(name = "thumbnailUrl")
   private String thumbnailUrl;
-  @NotNull(message = "categoryId cannot be null")
-  @ApiModelProperty(name = "categoryId")
-  private Long categoryId;
 }

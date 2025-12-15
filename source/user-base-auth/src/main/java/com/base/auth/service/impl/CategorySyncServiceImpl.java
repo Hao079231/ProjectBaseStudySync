@@ -1,16 +1,19 @@
 package com.base.auth.service.impl;
 
+import com.base.auth.form.category.CategoryForm;
+import com.base.auth.mapper.CategoryMapper;
 import com.base.auth.model.Category;
 import com.base.auth.repository.CategoryRepository;
 import com.base.auth.service.ISyncableService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.base.auth.utils.ConvertUtils;
+import com.base.auth.validation.SyncEntity;
 import java.util.Map;
-import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@SyncEntity("CATEGORY")
 @Slf4j
 public class CategorySyncServiceImpl implements ISyncableService {
 
@@ -18,51 +21,47 @@ public class CategorySyncServiceImpl implements ISyncableService {
   CategoryRepository categoryRepository;
 
   @Autowired
-  ObjectMapper objectMapper;
+  CategoryMapper categoryMapper;
 
   @Override
-  @Transactional
-  public Boolean insert(Long id, Map<String, Object> payload) {
-    try{
-      payload.remove("id");
-      Category category = objectMapper.convertValue(payload, Category.class);
-      category.setReusedId(id);
-      categoryRepository.save(category);
-      return true;
-    }catch (Exception e){
-        log.error("===> INSERT CATEGORY ERROR: {}", e.getMessage());
-     return false;
-    }
+  public Boolean insert(Long id, Map<String, String> payload) {
+    CategoryForm form = mapToCategoryForm(payload);
+    Category category = categoryMapper.fromCreateCategory(form);
+    category.setReusedId(id);
+    categoryRepository.save(category);
+    return true;
   }
 
   @Override
-  public Boolean update(Long id, Map<String, Object> payload) {
-    try {
-      Category category = categoryRepository.findById(id).orElse(null);
-      if (category == null){
-        return false;
-      }
-      objectMapper.updateValue(category, payload);
-      category.setReusedId(id);
-      categoryRepository.save(category);
-      return true;
-    } catch (Exception e) {
-      log.error("===> UPDATE CATEGORY ERROR - ID: {}, Error: {}", id, e.getMessage());
+  public Boolean update(Long id, Map<String, String> payload) {
+    Category category = categoryRepository.findById(id).orElse(null);
+    if (category == null) {
       return false;
     }
+
+    CategoryForm form = mapToCategoryForm(payload);
+    categoryMapper.mappingForUpdateServiceCategory(form, category);
+    categoryRepository.save(category);
+    return true;
   }
 
   @Override
   public Boolean delete(Long id) {
-    try {
-      if (!categoryRepository.existsById(id)) {
-        return false;
-      }
-      categoryRepository.deleteById(id);
-      return true;
-    } catch (Exception e) {
-      log.error("===> DELETE CATEGORY ERROR - ID: {}, Error: {}", id, e.getMessage());
+    if (!categoryRepository.existsById(id)) {
       return false;
     }
+    categoryRepository.deleteById(id);
+    return true;
+  }
+
+  private CategoryForm mapToCategoryForm(Map<String, String> p) {
+    CategoryForm f = new CategoryForm();
+    f.setName(p.get("name"));
+    f.setDescription(p.get("description"));
+    f.setImage(p.get("image"));
+    f.setOrdering(ConvertUtils.convertStringToInteger(p.get("ordering")));
+    f.setKind(ConvertUtils.convertStringToInteger(p.get("kind")));
+    return f;
   }
 }
+
