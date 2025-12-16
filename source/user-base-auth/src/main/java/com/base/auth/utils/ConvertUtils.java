@@ -22,4 +22,28 @@ public class ConvertUtils {
         }
         return i;
     }
+
+    public static Double convertStringToDouble(String input){
+        try {
+            return  Double.parseDouble(input);
+        }catch (Exception e){
+            return  Double.valueOf(0);
+        }
+    }
+
+    public static Float convertStringToFloat(String input){
+        try {
+            return  Float.parseFloat(input);
+        }catch (Exception e){
+            return  Float.valueOf(0);
+        }
+    }
+
+    public static Integer convertStringToInteger(String input){
+        try {
+            return  Integer.valueOf(input);
+        }catch (Exception e){
+            return  Integer.valueOf(0);
+        }
+    }
 }

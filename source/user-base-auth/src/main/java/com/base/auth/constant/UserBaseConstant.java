@@ -34,6 +34,13 @@ public class UserBaseConstant {
     public static final Boolean MFA_ENABLE = true;
     public static final Boolean MFA_DISABLE = false;
 
+    public static final String SYNC_TYPE_INSERT = "INSERT";
+    public static final String SYNC_TYPE_UPDATE = "UPDATE";
+    public static final String SYNC_TYPE_DELETE = "DELETE";
+
+    public static final Integer SYNC_STATUS_SUCCESS = 1;
+    public static final Integer SYNC_STATUS_PROGRESS = 0;
+
     private UserBaseConstant(){
         throw new IllegalStateException("Utility class");
     }

@@ -6,13 +6,11 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
 @Data
 @ApiModel
-public class CreateCategoryForm {
+public class CategoryForm {
     @NotEmpty(message = "name cant not be null")
     @ApiModelProperty(name = "name", required = true)
     private String name;
