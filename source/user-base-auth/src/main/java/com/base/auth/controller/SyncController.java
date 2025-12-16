@@ -3,8 +3,10 @@ package com.base.auth.controller;
 import com.base.auth.constant.UserBaseConstant;
 import com.base.auth.dto.ApiMessageDto;
 import com.base.auth.form.sync.DataSyncRequestForm;
+import com.base.auth.model.SyncLogHistory;
 import com.base.auth.repository.SyncLogHistoryRepository;
 import com.base.auth.service.SyncService;
+import java.util.Objects;
 import javax.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,27 +29,29 @@ public class SyncController {
   @PostMapping(value = "/process")
   public ApiMessageDto<Boolean> handleSync(@Valid @RequestBody DataSyncRequestForm dataSyncRequestForm, BindingResult bindingResult){
     ApiMessageDto<Boolean> apiMessageDto = new ApiMessageDto<>();
-    Boolean existSyncLog = syncLogHistoryRepository.existsByIdAndStatus(dataSyncRequestForm.getSyncLogId(),
-        UserBaseConstant.SYNC_STATUS_SUCCESS);
-    if (existSyncLog){
+    SyncLogHistory syncLogHistory = syncLogHistoryRepository.findById(dataSyncRequestForm.getSyncLogId()).orElse(null);
+
+    if (syncLogHistory == null){
+      syncLogHistory = new SyncLogHistory();
+      syncLogHistory.setReusedId(dataSyncRequestForm.getSyncLogId());
+      syncLogHistory.setEntity(dataSyncRequestForm.getEntity());
+      syncLogHistory.setType(dataSyncRequestForm.getType());
+      syncLogHistory.setPayload(dataSyncRequestForm.getPayload());
+    } else if (Objects.equals(syncLogHistory.getStatus(), UserBaseConstant.SYNC_STATUS_SUCCESS)) {
       apiMessageDto.setMessage("Data sync is done");
       return apiMessageDto;
     }
 
     Boolean result = syncService.processSync(dataSyncRequestForm);
     if (!result){
+      syncLogHistory.setStatus(UserBaseConstant.SYNC_STATUS_PROGRESS);
       apiMessageDto.setResult(false);
       apiMessageDto.setMessage("Sync data failed");
-      return apiMessageDto;
+    } else {
+      syncLogHistory.setStatus(UserBaseConstant.SYNC_STATUS_SUCCESS);
+      apiMessageDto.setMessage("Sync data success");
     }
-
-//    try {
-//      Thread.sleep(60000); // 1 phút
-//    } catch (InterruptedException e) {
-//      Thread.currentThread().interrupt();
-//    }
-
-    apiMessageDto.setMessage("Sync data success");
+    syncLogHistoryRepository.save(syncLogHistory);
     return apiMessageDto;
   }
 }
